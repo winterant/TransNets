@@ -95,8 +95,9 @@ class FactorizationMachine(nn.Module):
 
     def __init__(self, in_dim, k):  # in_dim=cnn_out_dim
         super(FactorizationMachine, self).__init__()
-        self.v = nn.Parameter(torch.zeros(in_dim, k))
+        self.v = nn.Parameter(torch.full([in_dim, k], 0.001))
         self.linear = nn.Linear(in_dim, 1)
+        self.linear.weight.data.normal_(mean=0, std=0.001)
 
     def forward(self, x):
         linear_part = self.linear(x)  # input shape(batch_size, cnn_out_dim), output shape(batch_size, 1)
@@ -121,6 +122,11 @@ class SourceNet(nn.Module):
             nn.Tanh(),
             nn.Dropout(p=config.dropout_prob)
         )
+        for m in self.transform.modules():
+            if isinstance(m, nn.Linear):
+                m.weight.data.normal_(mean=0, std=0.1).clamp_(-1, 1)
+                nn.init.constant_(m.bias.data, 0.1)
+
         self.fm = FactorizationMachine(in_dim=config.cnn_out_dim, k=8)
 
     def forward(self, user_reviews, item_reviews):  # input shape(batch_size, review_count, review_length)
