@@ -18,8 +18,8 @@ def calculate_mse(model, dataloader):
     mse, sample_count = 0, 0
     with torch.no_grad():
         for batch in dataloader:
-            user_reviews, item_reviews, reviews, ratings = [x.to(config.device) for x in batch]
-            latent, predict = model(user_reviews, item_reviews)
+            user_reviews, item_reviews, reviews, ratings, user_ids, item_ids = [x.to(config.device) for x in batch]
+            latent, predict = model(user_reviews, item_reviews, user_ids, item_ids)
             mse += F.mse_loss(predict, ratings, reduction='sum').item()
             sample_count += len(ratings)
     return mse / sample_count  # mse of dataloader
@@ -44,14 +44,14 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_pa
         model_T.train()  # turn on the train
         total_loss, total_samples = 0, 0
         for batch in train_dataloader:
-            user_reviews, item_reviews, reviews, ratings = [x.to(config.device) for x in batch]
+            user_reviews, item_reviews, reviews, ratings, user_ids, item_ids = [x.to(config.device) for x in batch]
             # step 1: Train Target Network on the actual review.
             latent_T, pred_T = model_T(reviews)
             loss_T = F.l1_loss(pred_T, ratings)
             opt_T.zero_grad()
             loss_T.backward()
             # step 2: Learn to Transform.
-            latent_S, pred_S = model_S(user_reviews, item_reviews)
+            latent_S, pred_S = model_S(user_reviews, item_reviews, user_ids, item_ids)
             loss_trans = F.mse_loss(latent_S, latent_T.detach())
             opt_trans.zero_grad()
             loss_trans.backward()
@@ -111,7 +111,7 @@ if __name__ == '__main__':
     valid_dataloader = DataLoader(valid_dataset, batch_size=config.batch_size, shuffle=True)
     test_dataloader = DataLoader(test_dataset, batch_size=config.batch_size, shuffle=True)
 
-    source_model = SourceNet(config, word_emb).to(config.device)
+    source_model = SourceNet(config, word_emb, extend_model=False).to(config.device)
     target_model = TargetNet(config, word_emb).to(config.device)
     del train_dataset, valid_dataset, test_dataset
     del word_emb, word_dict

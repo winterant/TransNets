@@ -39,6 +39,10 @@ def process_dataset(json_path, train_rate):
     train.to_csv(os.path.dirname(json_path) + '/train.csv', index=False, header=False)
     valid.to_csv(os.path.dirname(json_path) + '/valid.csv', index=False, header=False)
     test.to_csv(os.path.dirname(json_path) + '/test.csv', index=False, header=False)
+
+    user_count = len(df.groupby('userID'))
+    item_count = len(df.groupby('itemID'))
+    print(f'## About dataset, total user count:{user_count}; total item count:{item_count}')
     return train, valid, test
 
 

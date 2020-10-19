@@ -11,6 +11,8 @@ class Config:
     l2_regularization = 1e-6
     learning_rate_decay = 0.99
 
+    user_count = 5541  # got from output of preprocess.py
+    item_count = 3568
     review_count = 10  # max review count
     review_length = 80  # max review length
     PAD_WORD = '<UNK>'

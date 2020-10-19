@@ -19,14 +19,19 @@ class TransNetsDataset(Dataset):
         reviews = [self._adjust_review_list([x], 1, self.r_length) for x in df['review']]
         reviews = torch.LongTensor(reviews).view(-1, self.r_length)
         rating = torch.Tensor(df['rating'].to_list()).view(-1, 1)
+        user_ids = torch.LongTensor(df['userID'].to_list()).view(-1, 1)
+        item_ids = torch.LongTensor(df['itemID'].to_list()).view(-1, 1)
 
         self.user_reviews = user_reviews[[idx for idx in range(user_reviews.shape[0]) if idx not in self.null_idx]]
         self.item_reviews = item_reviews[[idx for idx in range(item_reviews.shape[0]) if idx not in self.null_idx]]
         self.reviews = reviews[[idx for idx in range(reviews.shape[0]) if idx not in self.null_idx]]
         self.rating = rating[[idx for idx in range(rating.shape[0]) if idx not in self.null_idx]]
+        self.user_ids = user_ids[[idx for idx in range(user_ids.shape[0]) if idx not in self.null_idx]]
+        self.item_ids = item_ids[[idx for idx in range(item_ids.shape[0]) if idx not in self.null_idx]]
 
     def __getitem__(self, idx):
-        return self.user_reviews[idx], self.item_reviews[idx], self.reviews[idx], self.rating[idx]
+        return self.user_reviews[idx], self.item_reviews[idx], self.reviews[idx], self.rating[idx],\
+                self.user_ids[idx], self.item_ids[idx]
 
     def __len__(self):
         return self.rating.shape[0]
@@ -110,8 +115,9 @@ class FactorizationMachine(nn.Module):
 
 class SourceNet(nn.Module):
 
-    def __init__(self, config, word_emb):
+    def __init__(self, config, word_emb, extend_model=False):
         super(SourceNet, self).__init__()
+        self.extend_model = extend_model
         self.embedding = nn.Embedding.from_pretrained(torch.Tensor(word_emb))
         self.cnn_u = CNN(config, word_dim=self.embedding.embedding_dim, review_count=config.review_count)
         self.cnn_i = CNN(config, word_dim=self.embedding.embedding_dim, review_count=config.review_count)
@@ -127,9 +133,14 @@ class SourceNet(nn.Module):
                 m.weight.data.normal_(mean=0, std=0.1).clamp_(-1, 1)
                 nn.init.constant_(m.bias.data, 0.1)
 
-        self.fm = FactorizationMachine(in_dim=config.cnn_out_dim, k=8)
+        if self.extend_model:
+            self.emb_u = nn.Embedding(config.user_count, config.cnn_out_dim, padding_idx=0)
+            self.emb_i = nn.Embedding(config.item_count, config.cnn_out_dim, padding_idx=0)
+            self.fm = FactorizationMachine(in_dim=config.cnn_out_dim * 3, k=8)
+        else:
+            self.fm = FactorizationMachine(in_dim=config.cnn_out_dim, k=8)
 
-    def forward(self, user_reviews, item_reviews):  # input shape(batch_size, review_count, review_length)
+    def forward(self, user_reviews, item_reviews, user_ids, item_ids):  # shape(batch_size, review_count, review_length)
         new_batch_size = user_reviews.shape[0] * user_reviews.shape[1]
         user_reviews = user_reviews.view(new_batch_size, -1)
         item_reviews = item_reviews.view(new_batch_size, -1)
@@ -143,7 +154,13 @@ class SourceNet(nn.Module):
         concat_latent = torch.cat((user_latent, item_latent), dim=1)
         trans_latent = self.transform(concat_latent)
 
-        prediction = self.fm(trans_latent.detach())  # Detach forward
+        if self.extend_model:
+            omega_u = self.emb_u(user_ids)
+            omega_i = self.emb_i(item_ids)
+            latent = torch.cat([omega_u, omega_i, trans_latent.detach()], dim=1)
+            prediction = self.fm(latent)
+        else:
+            prediction = self.fm(trans_latent.detach())  # Detach forward
         return trans_latent, prediction
 
     def trans_param(self):
