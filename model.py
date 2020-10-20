@@ -155,8 +155,8 @@ class SourceNet(nn.Module):
         trans_latent = self.transform(concat_latent)
 
         if self.extend_model:
-            omega_u = self.emb_u(user_ids)
-            omega_i = self.emb_i(item_ids)
+            omega_u = self.emb_u(user_ids.view(-1))
+            omega_i = self.emb_i(item_ids.view(-1))
             latent = torch.cat([omega_u, omega_i, trans_latent.detach()], dim=1)
             prediction = self.fm(latent)
         else:

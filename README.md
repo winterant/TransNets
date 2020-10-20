@@ -29,7 +29,7 @@ Rose Catherine, William Cohen. "TransNets: Learning to Transform for Recommendat
    and then you must fill in config.py with correct values of `user_count` and `item_count`
    which you can see in the output of preprocess.py.
    ```
-   SourceNet(config, word_emb, extend_model=False)
+   SourceNet(config, word_emb, extend_model=True)
    ```
 
 

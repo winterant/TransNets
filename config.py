@@ -5,7 +5,7 @@ class Config:
     device = torch.device("cuda:0")
     # device = torch.device("cpu")
 
-    train_epochs = 10
+    train_epochs = 15
     batch_size = 128
     learning_rate = 2e-3
     l2_regularization = 1e-6
