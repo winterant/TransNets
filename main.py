@@ -40,8 +40,9 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_pa
     torch.optim.lr_scheduler.ExponentialLR(opt_T, config.learning_rate_decay)
 
     best_loss, best_epoch, batch_step = 100, 0, 0
+    model_T.train()
     for epoch in range(config.train_epochs):
-        model_T.train()  # turn on the train
+        model_S.train()  # turn on the train
         total_loss, total_samples = 0, 0
         for batch in train_dataloader:
             user_reviews, item_reviews, reviews, ratings, user_ids, item_ids = [x.to(config.device) for x in batch]

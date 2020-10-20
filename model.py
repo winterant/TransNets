@@ -90,7 +90,7 @@ class CNN(nn.Module):
         )
 
     def forward(self, vec):  # input shape(new_batch_size, review_length, word2vec_dim)
-        latent = self.conv(vec.permute(0, 2, 1).contiguous())  # output shape(new_batch_size, kernel_count, 1)
+        latent = self.conv(vec.permute(0, 2, 1))  # output shape(new_batch_size, kernel_count, 1)
         latent = latent.view(-1, self.kernel_count * self.review_count)
         latent = self.linear(latent)
         return latent  # output shape(batch_size, cnn_out_dim)
