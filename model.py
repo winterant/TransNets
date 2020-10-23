@@ -9,6 +9,7 @@ class TransNetsDataset(Dataset):
         self.word_dict = word_dict
         self.r_count = config.review_count
         self.r_length = config.review_length
+        self.lowest_r_count = config.lowest_review_count  # lowest amount of reviews wrote by exactly one user/item
         self.PAD_WORD_idx = word_dict[config.PAD_WORD]
 
         df = pd.read_csv(data_path, header=None, names=['userID', 'itemID', 'review', 'rating'])
@@ -43,7 +44,7 @@ class TransNetsDataset(Dataset):
         for idx, (lead_id, costar_id) in enumerate(zip(df[lead], df[costar])):
             df_data = reviews_by_lead[lead_id]  # get information of lead, return DataFrame.
             reviews = df_data['review'][df_data[costar] != costar_id].to_list()  # get reviews without review u for i.
-            if len(reviews) < 5:
+            if len(reviews) < self.lowest_r_count:
                 self.null_idx.add(idx)
             reviews = self._adjust_review_list(reviews, self.r_count, self.r_length)
             lead_reviews.append(reviews)

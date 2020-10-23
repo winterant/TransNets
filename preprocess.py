@@ -29,8 +29,8 @@ def process_dataset(json_path, train_rate):
         # review = [nltk.WordNetLemmatizer().lemmatize(word) for word in review]  # 词干提取
         return ' '.join(review)
 
-    df['review'] = df['review'].apply(clean_review)  # 清洗文本
     df = df.drop(df[[not isinstance(x, str) or len(x) == 0 for x in df['review']]].index)  # 清除空评论, **很重要**！
+    df['review'] = df['review'].apply(clean_review)  # 清洗文本
 
     print(f'## Got {len(df)} reviews from json! Split them into train,validation and test!')
     train, valid = train_test_split(df, test_size=1 - train_rate, random_state=3)  # 数据集划分，含乱序
