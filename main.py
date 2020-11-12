@@ -25,7 +25,7 @@ def calculate_mse(model, dataloader):
     return mse / sample_count  # mse of dataloader
 
 
-def train(train_dataloader, valid_dataloader, model_S, model_T, config):
+def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_path):
     print(f'{date()}## Start the training!')
     train_mse = calculate_mse(model_S, train_dataloader)
     valid_mse = calculate_mse(model_S, valid_dataloader)
@@ -39,7 +39,7 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config):
     torch.optim.lr_scheduler.ExponentialLR(opt_trans, config.learning_rate_decay)
     torch.optim.lr_scheduler.ExponentialLR(opt_T, config.learning_rate_decay)
 
-    best_loss, best_epoch, batch_step, best_model = 100, 0, 0, None
+    best_loss, best_epoch, batch_step = 100, 0, 0
     model_T.train()
     for epoch in range(config.train_epochs):
         model_S.train()  # turn on the train
@@ -73,7 +73,7 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config):
                 valid_mse = calculate_mse(model_S, valid_dataloader)
                 if best_loss > valid_mse:
                     best_loss = valid_mse
-                    best_model = model_S
+                    torch.save(model_S, model_path)
                 print(f"{date()}###### Step {batch_step:3d}; validation mse {valid_mse:.6f}")
                 model_S.train()
 
@@ -81,13 +81,12 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config):
         valid_mse = calculate_mse(model_S, valid_dataloader)
         if best_loss > valid_mse:
             best_loss = valid_mse
-            best_model = model_S
+            torch.save(model_S, model_path)
         train_loss = total_loss / total_samples
         print(f"{date()}#### Epoch {epoch:3d}; train mse {train_loss:.6f}; validation mse {valid_mse:.6f}")
 
     end_time = time.perf_counter()
     print(f'{date()}## End of training! Time used {end_time - start_time:.0f} seconds.')
-    return best_model
 
 
 def test(dataloader, best_model):
@@ -116,8 +115,7 @@ if __name__ == '__main__':
     target_model = TargetNet(config, word_emb).to(config.device)
     del train_dataset, valid_dataset, test_dataset, word_emb, word_dict
 
-    best_Model = train(train_dlr, valid_dlr, source_model, target_model, config)
-    test(test_dlr, best_Model)
-
     os.makedirs('model', exist_ok=True)  # make dir if it isn't exist.
-    torch.save(best_Model, f'model/best_model{date("%Y%m%d_%H%M%S")}.pt')
+    model_Path = f'model/best_model{date("%Y%m%d_%H%M%S")}.pt'
+    train(train_dlr, valid_dlr, source_model, target_model, config, model_Path)
+    test(test_dlr, torch.load(model_Path))
