@@ -11,11 +11,11 @@ class Config:
     l2_regularization = 1e-6
     learning_rate_decay = 0.99
 
-    user_count = 5541  # got from output of preprocess.py
+    user_count = 5541  # Parameter of TransNet-EXT. Got from output of preprocess.py
     item_count = 3568
     review_count = 10  # max review count
     review_length = 80  # max review length
-    lowest_review_count = 5  # reviews wrote by a user/item will be delete if its amount less than such value.
+    lowest_review_count = 2  # reviews wrote by a user/item will be delete if its amount less than such value.
     PAD_WORD = '<UNK>'
 
     kernel_count = 100
