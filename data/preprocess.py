@@ -1,25 +1,29 @@
+import argparse
 import os
+import sys
 import time
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from nltk.tokenize import WordPunctTokenizer
 
+os.chdir(sys.path[0])
 
-def process_dataset(json_path, select_cols, rename_cols, train_rate, csv_path):
+
+def process_dataset(json_path, select_cols, train_rate, csv_path):
     print('#### Read the json file...')
     if json_path.endswith('gz'):
         df = pd.read_json(json_path, lines=True, compression='gzip')
     else:
         df = pd.read_json(json_path, lines=True)
     df = df[select_cols]
-    df.columns = rename_cols
+    df.columns = ['userID', 'itemID', 'review', 'rating']  # Rename above columns for convenience
     # map user(or item) to number
     df['userID'] = df.groupby(df['userID']).ngroup()
     df['itemID'] = df.groupby(df['itemID']).ngroup()
 
-    with open('data/embedding/stopwords.txt') as f:  # stop words
+    with open('stopwords.txt') as f:  # stop words
         stop_words = set(f.read().splitlines())
-    with open('data/embedding/punctuations.txt') as f:  # useless punctuations
+    with open('punctuations.txt') as f:  # useless punctuations
         punctuations = set(f.read().splitlines())
 
     def clean_review(review):  # clean a review using stop words and useless punctuations
@@ -36,6 +40,7 @@ def process_dataset(json_path, select_cols, rename_cols, train_rate, csv_path):
 
     train, valid = train_test_split(df, test_size=1 - train_rate, random_state=3)  # split dataset including random
     valid, test = train_test_split(valid, test_size=0.5, random_state=4)
+    os.makedirs(csv_path, exist_ok=True)
     train.to_csv(os.path.join(csv_path, 'train.csv'), index=False, header=False)
     valid.to_csv(os.path.join(csv_path, 'valid.csv'), index=False, header=False)
     test.to_csv(os.path.join(csv_path, 'test.csv'), index=False, header=False)
@@ -45,15 +50,17 @@ def process_dataset(json_path, select_cols, rename_cols, train_rate, csv_path):
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--data_path', dest='data_path',
+                        default='Digital_Music_5.json.gz',
+                        help='Selected columns of above dataset in json format.')
+    parser.add_argument('--select_cols', dest='select_cols', nargs='+',
+                        default=['reviewerID', 'asin', 'reviewText', 'overall'])
+    parser.add_argument('--train_rate', dest='train_rate', default=0.8)
+    parser.add_argument('--save_dir', dest='save_dir', default='./music')
+    args = parser.parse_args()
+
     start_time = time.perf_counter()
-
-    # You must set following args depend on your dataset!
-    data_path = 'data/music/Digital_Music_5.json.gz'
-    select_Cols = ['reviewerID', 'asin', 'reviewText', 'overall']  # Selected columns of above dataset in json format
-    rename_Cols = ['userID', 'itemID', 'review', 'rating']  # Rename above columns for convenience
-    save_path = os.path.dirname(data_path)
-
-    process_dataset(data_path, select_Cols, rename_Cols, 0.8, save_path)
-
+    process_dataset(args.data_path, args.select_cols, args.train_rate, args.save_dir)
     end_time = time.perf_counter()
     print(f'## preprocess.py: Data loading complete! Time used {end_time - start_time:.0f} seconds.')
