@@ -10,9 +10,6 @@ from config import Config
 from model import SourceNet, TargetNet
 from utils import date, calculate_mse, TransNetsDataset
 
-import matplotlib.pyplot as plt
-plt.figure()
-y=[]
 
 def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_path):
     print(f'{date()}## Start the training!')
@@ -68,7 +65,6 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_pa
         lr_sch_S.step()
         lr_sch_trans.step()
         lr_sch_T.step()
-        y.append(lr_sch_S.get_last_lr())
         model_S.eval()
         valid_mse = calculate_mse(model_S, valid_dataloader, config.device)
         if best_loss > valid_mse:
@@ -76,7 +72,7 @@ def train(train_dataloader, valid_dataloader, model_S, model_T, config, model_pa
             torch.save(model_S, model_path)
         train_loss = total_loss / total_samples
         print(f"{date()}#### Epoch {epoch:3d}; train mse {train_loss:.6f}; validation mse {valid_mse:.6f}")
-    plt.plot(range(config.train_epochs), y)
+
     end_time = time.perf_counter()
     print(f'{date()}## End of training! Time used {end_time - start_time:.0f} seconds.')
 
